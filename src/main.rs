@@ -36,9 +36,10 @@ fn hw5800<F: Fn(&hw5800::HW5800Status) -> ()>(f: F, device: u32) {
 fn main() {
     let args = clap::App::new("hw5800")
         .version("0.0.0")
+        .set_term_width(80)
         .about(
-            r"#Use RTL-SDR to receive and parse Honeywell 8100-type
-            radio transmissions, sending the results to a MQTT server.#",
+            "Use a RTL-SDR receiver to receive and parse Honeywell 5800-type \
+            radio transmissions, sending the results to a MQTT server.",
         )
         .arg(clap::Arg::with_name("server")
             .short("s")
@@ -70,8 +71,9 @@ fn main() {
             .value_name("FILE")
             .takes_value(true)
             .help("File containing device identifications.")
-            .long_help("Each line contains a device ID and a device type.\
-            the valid device types are: {door, motion}"))
+            .long_help("File containing device identifications. \
+            Each line contains a 3-byte hex device ID and a device type. \
+            Valid device types: {door, motion}"))
         .arg(clap::Arg::with_name("rtl-number")
             .short("r")
             .long("rtl-number")
