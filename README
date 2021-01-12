@@ -1,0 +1,119 @@
+
+Parsing 345MHz Honeywell 5800-series Radio Transmissions Messages with RTL-SDR.
+
+Instructions
+------------
+
+Requirements:
+
+- RTL-SDR device.
+
+  - Development device (in lsusb):
+    ID 0bda:2838 Realtek Semiconductor Corp. RTL2838 DVB-T
+
+  - Antenna (for 345MHz, ideally ~17.1" or ~34.2" long [4])
+
+- RTL-SDR software
+
+  - Package librtlsdr0 on Debian / Ubuntu
+  - See https://www.rtl-sdr.com/rtl-sdr-quick-start-guide/
+
+- Honeywell/Ademco Sensor
+
+  - Developed with Honeywell 5816 door sensor and Ademco 5897-35
+    motion sensor.
+
+- Rust (developed with version 1.48.0)
+  - Installation instructions: https://www.rust-lang.org/
+
+To build:
+
+  cargo build --release
+
+To run (with an RTL-SDR device plugged in):
+
+  ./target/release/hw5800
+
+You can have the program post results to a MQTT server by providing the -s
+option (with an appropriate IP or domain). Messages will be on the
+hw5800/XXXXXX channel, where XXXXXX is the 3-byte device ID in the signal.
+mosquitto [5] was used in development.
+
+The payload of the MQTT message is a json encoded dictionary. These
+dictionaries will contain different elements depending on the device ID type.
+Device ID types can be specified via a file specified by the -d option. Each
+line of the provided file must contain the hex device ID, a space, then the
+device type. Valid device types are given below.
+
+All json dictionaries passed to the MQTT server contain a "b" (bits) field that
+contains the hex encoding of the 8-bit status field. All other information is
+inferred from the data in the "b" field.
+
+The valid Device Types and their associated dictionary elements are:
+
+door:
+  "open": "y" indicates door is open, "n" indicates closed
+  "tog": "y" indicates toggle is up (case is open), "n" indicates closed
+
+motion:
+  "motion": "y" indicates motion detected, "n" indicates no motion
+  "tog": "y" indicates toggle is up (case is open), "n" indicates closed
+
+An example device type file stating that device ID 12AB34 is a door sensor
+(Honeywell 5816) and that device ID ABCD56 is a motion sensor (Ademco
+5897-35):
+
+12AB34 door
+ABCD56 motion
+
+More device types and their associated dictionaries can be added in the
+DeviceType enum in src/devices.rs. The json dictionaries which interpret each
+message's bit field are created by the DeviceStore::as_json function.
+
+SSL
+---
+
+This program includes the options necessary to make an SSL connection to the
+MQTT broker, but I have been unable to successfully connect with my local
+mosquitto broker.
+
+Motivation
+----------
+
+Whereas
+- I inherited some door sensors on moving into my new house
+- I got a homeassistant [1] set up and am looking for things
+  to integrate into it
+- I want to learn about SDR
+- I want practice with Rust
+
+I decided to figure out how to parse the transmissions myself.  I got an
+RTL-SDR [2] dongle and searched the internet. Happily, I found the decode345
+[3] project, which has a very nice and helpful writeup.
+
+The decode345 project involves a GNU radio script that writes to a FIFO which a
+C program parses. The Python GNU radio program and the IPC seemed like it was
+a burden for the raspberry pi I was running on, so I decided to combine them
+into a single binary using my new favorite language: Rust.
+
+This repo contains the results of that project. The approach is ad-hoc --
+apologies to those that know what they're doing when parsing RF signals. The
+basic strategy is, I think, similar to the decode345 project and it works for
+me. However, many of the parameters are hard coded and I wonder if there are
+better values (or if different values might be better on other systems).
+
+TODO
+----
+
+- Add tests for the Radio transmissions
+- Verify/test SSL MQTT connections/clients
+- Expand bit field meanings and supported device types
+- Investigate and expose hard coded parameters
+
+---
+
+[1] https://home-assistant.io/
+[2] https://www.rtl-sdr.com/
+[3] https://denglend.github.io/decode345/
+[4] https://www.easycalculation.com/physics/electromagnetism/antenna-wavelength.php
+[5] https://mosquitto.org

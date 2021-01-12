@@ -1,0 +1,13 @@
+[package]
+name = "hw5800"
+version = "0.0.0"
+authors = ["a-u-s-t-i-n"]
+edition = "2018"
+
+[dependencies]
+rtlsdr_mt = "*"
+log = "0.4"
+crc16 = "*"
+paho-mqtt = "0.9"
+clap = "2.*"
+
